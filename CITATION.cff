@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "DSCN-G: Dual-State Cognitive Geometry"
+authors:
+  - family-names: "Nieto"
+    given-names: "Luciano Benjamín"
+    email: "lucianobenjaminnieto@gmail.com"
+repository-code: "https://github.com/Rylow999/dscn-g"
+abstract: "Official simulator for DSCN-G, a unified framework for autopoietic cognition with formally verifiable properties."
+keywords:
+  - "autopoietic graphs"
+  - "Kuramoto dynamics"
+  - "TD-learning"
+  - "neural correlates"
+  - "phase-hijacking"
+license: MIT
+version: 7.2
+date-released: 2026-06-22

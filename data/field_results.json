@@ -1,0 +1,59 @@
+{
+  "summary": {
+    "coherence_mean": 0.43134298525171194,
+    "coherence_std": 0.26838773516648096,
+    "phase_transition_detected": true
+  },
+  "results": [
+    {
+      "seed": 0,
+      "rho_final": 1.0,
+      "coherence_final": 0.8198023808117522
+    },
+    {
+      "seed": 1,
+      "rho_final": 1.0,
+      "coherence_final": 0.8113568709936048
+    },
+    {
+      "seed": 2,
+      "rho_final": 1.0,
+      "coherence_final": 0.5126790649983697
+    },
+    {
+      "seed": 3,
+      "rho_final": 1.0,
+      "coherence_final": 0.35039361212824843
+    },
+    {
+      "seed": 4,
+      "rho_final": 1.0,
+      "coherence_final": 0.20942587083842315
+    },
+    {
+      "seed": 5,
+      "rho_final": 1.0,
+      "coherence_final": 0.6637532018644001
+    },
+    {
+      "seed": 6,
+      "rho_final": 1.0,
+      "coherence_final": 0.10720046161036884
+    },
+    {
+      "seed": 7,
+      "rho_final": 1.0,
+      "coherence_final": 0.06694192562272916
+    },
+    {
+      "seed": 8,
+      "rho_final": 1.0,
+      "coherence_final": 0.20345707659147835
+    },
+    {
+      "seed": 9,
+      "rho_final": 1.0,
+      "coherence_final": 0.5684193870577444
+    }
+  ]
+}

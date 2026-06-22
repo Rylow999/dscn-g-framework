@@ -1,0 +1,110 @@
+{
+  "kappa=0.1_theta=0.1": {
+    "kappa": 0.1,
+    "theta_emerg": 0.1,
+    "hijack_rate": 0.0,
+    "hijack_rate_percent": 0.0,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=0.1_theta=0.3": {
+    "kappa": 0.1,
+    "theta_emerg": 0.3,
+    "hijack_rate": 0.0,
+    "hijack_rate_percent": 0.0,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=0.1_theta=0.5": {
+    "kappa": 0.1,
+    "theta_emerg": 0.5,
+    "hijack_rate": 0.0,
+    "hijack_rate_percent": 0.0,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=0.5_theta=0.1": {
+    "kappa": 0.5,
+    "theta_emerg": 0.1,
+    "hijack_rate": 0.4673999999999999,
+    "hijack_rate_percent": 46.739999999999995,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=0.5_theta=0.3": {
+    "kappa": 0.5,
+    "theta_emerg": 0.3,
+    "hijack_rate": 0.0043,
+    "hijack_rate_percent": 0.43,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=0.5_theta=0.5": {
+    "kappa": 0.5,
+    "theta_emerg": 0.5,
+    "hijack_rate": 0.0,
+    "hijack_rate_percent": 0.0,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=1.0_theta=0.1": {
+    "kappa": 1.0,
+    "theta_emerg": 0.1,
+    "hijack_rate": 0.489,
+    "hijack_rate_percent": 48.9,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=1.0_theta=0.3": {
+    "kappa": 1.0,
+    "theta_emerg": 0.3,
+    "hijack_rate": 0.2852,
+    "hijack_rate_percent": 28.52,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=1.0_theta=0.5": {
+    "kappa": 1.0,
+    "theta_emerg": 0.5,
+    "hijack_rate": 0.026500000000000003,
+    "hijack_rate_percent": 2.6500000000000004,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=1.5_theta=0.1": {
+    "kappa": 1.5,
+    "theta_emerg": 0.1,
+    "hijack_rate": 0.4923,
+    "hijack_rate_percent": 49.230000000000004,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=1.5_theta=0.3": {
+    "kappa": 1.5,
+    "theta_emerg": 0.3,
+    "hijack_rate": 0.4673999999999999,
+    "hijack_rate_percent": 46.739999999999995,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  },
+  "kappa=1.5_theta=0.5": {
+    "kappa": 1.5,
+    "theta_emerg": 0.5,
+    "hijack_rate": 0.1665,
+    "hijack_rate_percent": 16.650000000000002,
+    "p_converge": 1.0,
+    "N_mean": 4.0,
+    "omega_mean": 0.7090789549718662
+  }
+}

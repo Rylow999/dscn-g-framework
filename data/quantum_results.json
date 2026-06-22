@@ -1,0 +1,45 @@
+{
+  "entropy_final_mean": 0.0,
+  "results": [
+    {
+      "seed": 0,
+      "entropy_final": 0.0
+    },
+    {
+      "seed": 1,
+      "entropy_final": 0.0
+    },
+    {
+      "seed": 2,
+      "entropy_final": 0.0
+    },
+    {
+      "seed": 3,
+      "entropy_final": 0.0
+    },
+    {
+      "seed": 4,
+      "entropy_final": 0.0
+    },
+    {
+      "seed": 5,
+      "entropy_final": 0.0
+    },
+    {
+      "seed": 6,
+      "entropy_final": 0.0
+    },
+    {
+      "seed": 7,
+      "entropy_final": 0.0
+    },
+    {
+      "seed": 8,
+      "entropy_final": 0.0
+    },
+    {
+      "seed": 9,
+      "entropy_final": 0.0
+    }
+  ]
+}
