@@ -2,7 +2,8 @@
 
 **Author:** Luciano Benjamín Nieto  
 **Contact:** lucianobenjaminnieto@gmail.com  
-**License:** MIT
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
