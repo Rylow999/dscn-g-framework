@@ -2,9 +2,11 @@
 ## A Unified Framework for Autopoietic Cognition with Formally Verifiable Properties
 ### NOUS Series • Paper 1
 
-**Luciano Benjamín Nieto**  
-Independent Research  
-lucianobenjaminnieto@gmail.com — 2026
+**Author:** Luciano Benjamín Nieto  
+**Affiliation:** Independent Research  
+**Contact:** lucianobenjaminnieto@gmail.com  
+**Date:** 2026  
+**License:** CC-BY 4.0 (Share, adapt, build upon freely)
 
 ---
 
