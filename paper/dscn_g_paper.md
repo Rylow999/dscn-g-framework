@@ -1,5 +1,6 @@
 # DSCN-G: Dual-State Cognitive Geometry
 ## A Unified Framework for Autopoietic Cognition with Formally Verifiable Properties
+### NOUS Series • Paper 1
 
 **Luciano Benjamín Nieto**  
 Independent Research  
