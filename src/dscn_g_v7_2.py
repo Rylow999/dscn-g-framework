@@ -6,6 +6,11 @@ Email: lucianobenjaminnieto@gmail.com
 
 Official parameters verifying Theorems 1-3:
   D=4, K=10, beta=0.10, eta=0.05, gamma=0.01, theta_death=0.10
+
+CORRECTIONS in this version:
+  - ec3: Fixed sign(o_i) to match paper Eq. 3 (was incorrectly (2*outcome-1))
+  - ec7: Now implements cognitive interference per paper Eq. 7
+  - reward_fn: Formerly ec7, implements reward function (not in paper explicitly)
 """
 
 import numpy as np
@@ -42,8 +47,7 @@ SCALE_CONFIGS = [
 class Node:
     node_id: int
     depth: int
-    omega: np.ndarray
-    phi: float
+    omega: np.ndarray    phi: float
     vitality: float
     def __post_init__(self): self.omega = self.omega.copy()
 
@@ -77,8 +81,12 @@ class Chain:
 # ==================================================================
 # MODEL EQUATIONS
 # ==================================================================
-def ec1(omega, beta, R, outcome, e_R): return (1-beta)*omega + beta*outcome*R*e_R
+def ec1(omega, beta, R, outcome, e_R): 
+    """Eq. 1 — Stochastic TD learning"""
+    return (1-beta)*omega + beta*outcome*R*e_R
+
 def ec2(chains, graph, rng, alpha=ALPHA):
+    """Eq. 2 — Information chains with probabilistic transition"""
     cc = defaultdict(int)
     for ch in chains:
         if ch.cur not in graph.nodes: ch.cur = graph.root
@@ -89,21 +97,54 @@ def ec2(chains, graph, rng, alpha=ALPHA):
             ch.cur = nbrs[int(rng.choice(len(nbrs), p=p))].node_id
         cc[ch.cur] += 1
     return cc
-def ec3(phi, eta, R_i, outcome, theta_a): return (phi + eta*R_i*(2*outcome-1)*np.sin(theta_a-phi)) % (2*np.pi)
+def ec3(phi, eta, R_i, outcome, theta_a):
+    """
+    Eq. 3 — Bounded Kuramoto phase dynamics
+    CORRECTED: sign(o_i) where sign(0)=0, sign(1)=1 per paper
+    (Previous code incorrectly used (2*outcome-1) which gives -1 for outcome=0)
+    """
+    sign_o = 1.0 if outcome > 0.5 else 0.0  # sign(0)=0, sign(1)=1
+    return (phi + eta * R_i * sign_o * np.sin(theta_a - phi)) % (2 * np.pi)
+
 def ec4(phi_root, lambda_vm, n_actions, rng):
+    """Eq. 4 — von Mises action selection"""
     ta = np.linspace(0, 2*np.pi, n_actions, endpoint=False)
     lp = lambda_vm*np.cos(phi_root-ta); lp -= lp.max(); p = np.exp(lp); p /= p.sum()
     idx = int(rng.choice(n_actions, p=p)); return idx, ta[idx]
-def ec5(V, gamma, A): return V*np.exp(-gamma) + A*(1-np.exp(-gamma))
-def ec6(A, V, kappa): return max(0.0, A-V)*kappa
-def def1(omega, omega_ideal): return R_BASE/(1+np.linalg.norm(omega-omega_ideal))
-def ec7(theta_a, theta_star):
-    dist = abs(np.sin((theta_a-theta_star)/2))
-    return float(np.exp(-3*dist)), 1 if dist < np.pi/8 else 0
+
+def ec5(V, gamma, A):
+    """Eq. 5 — Vitality (exponential moving average)"""
+    return V*np.exp(-gamma) + A*(1-np.exp(-gamma))
+
+def ec6(A, V, kappa):
+    """Eq. 6 — Valence signal"""
+    return max(0.0, A-V)*kappa
+
+def def1(omega, omega_ideal):
+    """Definition 1 — Bounded relevance"""
+    return R_BASE/(1+np.linalg.norm(omega-omega_ideal))
+
+def reward_fn(theta_a, theta_star):
+    """
+    Reward function R(t) ∈ [0,1]
+    NOT explicitly defined in paper, but required for Eq. 1
+    Returns: (R_g, outcome) where R_g = exp(-3*dist) and outcome = 1 if dist < π/8
+    """
+    dist = abs(np.sin((theta_a - theta_star) / 2))
+    return float(np.exp(-3 * dist)), 1 if dist < np.pi / 8 else 0
+
+def ec7(omega_i_norm, phi_i, phi_root):
+    """
+    Eq. 7 — Cognitive interference (CORRECTED)
+    Previous code had ec7 as reward function; now implements actual paper Eq. 7:
+    I_i(t) = ||omega_i(t)|| * cos(phi_i(t) - phi_root(t))
+    """
+    return omega_i_norm * np.cos(phi_i - phi_root)
+
 def compute_rho_eff(cc, active):
+    """Herfindahl concentration index"""
     total = sum(cc.values())
     return sum((cnt/total)**2 for cnt in cc.values()) if total>0 else 0.0
-
 # ==================================================================
 # SINGLE SIMULATION
 # ==================================================================
@@ -123,7 +164,7 @@ def simulate_single(seed, n_init=4, full_trace=False, steps=STEPS, kappa_overrid
         rho = compute_rho_eff(cc, len(g.nodes)); chain_conc.append(rho)
         phi_r = g.nodes[g.root].phi if g.root in g.nodes else 0.0
         act_idx, theta_a = ec4(phi_r, LAMBDA_VM, N_ACTIONS, rng)
-        R_g, o_g = ec7(theta_a, THETA_STAR)
+        R_g, o_g = reward_fn(theta_a, THETA_STAR)
         total_valence = 0.0; hijack_detected = False
         for nid in list(g.nodes.keys()):
             if nid not in g.nodes: continue
@@ -153,8 +194,7 @@ def simulate_single(seed, n_init=4, full_trace=False, steps=STEPS, kappa_overrid
                         oc = (nd1.omega+nd2.omega)/2.0; oc = oc/(np.linalg.norm(oc)+1e-9)
                         oc = oc*min(np.linalg.norm(nd1.omega), np.linalg.norm(nd2.omega))*(sim_AB**2)
                         cid = g._add(max(nd1.depth, nd2.depth)+1, oc, (nd1.phi+nd2.phi)/2.0, THETA_D*(1+sim_AB))
-                        g.edges[n1] = g.edges.get(n1, [])+[cid]; g.edges[n2] = g.edges.get(n2, [])+[cid]
-                        nd1.vitality *= 0.9; nd2.vitality *= 0.9
+                        g.edges[n1] = g.edges.get(n1, [])+[cid]; g.edges[n2] = g.edges.get(n2, [])+[cid]                        nd1.vitality *= 0.9; nd2.vitality *= 0.9
         if g.root in g.nodes:
             pn = g.nodes[g.root].phi; on = np.linalg.norm(g.nodes[g.root].omega)
         else: pn = on = float('nan')
@@ -203,8 +243,7 @@ def run_batch_simulation(seeds=None, steps=STEPS, n_init=4, full_trace_seeds=Non
         results.append(r)
         if full: traces[seed] = r
         if verbose and (i + 1) % 10 == 0:
-            status = "OK" if r['converged_target'] else "ANT"
-            print(f"  {i+1}/{len(seeds)} | seed={seed} [{status}] | N={r['node_count']} | phi_err={r['phi_error_mean']:.4f} | omega={r['omega_mean']:.3f} | hijack={r['hijack_rate']*100:.1f}%")
+            status = "OK" if r['converged_target'] else "ANT"            print(f"  {i+1}/{len(seeds)} | seed={seed} [{status}] | N={r['node_count']} | phi_err={r['phi_error_mean']:.4f} | omega={r['omega_mean']:.3f} | hijack={r['hijack_rate']*100:.1f}%")
     converged = [r for r in results if r['converged_target']]
     p_converge = len(converged) / len(results)
     nc_all = [r['node_count'] for r in results]
@@ -253,7 +292,6 @@ def run_parameter_sweep(kappa_values=None, theta_emerg_values=None, seeds_per_co
             if res['hijack_rate_percent'] >= 5.0: falsified = False; break
     if verbose: print("\n" + "=" * 65); print("SWEEP RESULTS"); print("=" * 65); print(f"Falsification criterion: {'FALSIFIED' if falsified else 'NOT FALSIFIED'}")
     return sweep_results
-
 def simulate_autopoietic_field(n_nodes=100, steps=1000, seeds=10):
     results = []
     for seed in range(seeds):
@@ -304,13 +342,12 @@ def smooth(arr, w=WIN):
     arr = np.array(arr)
     if len(arr) < w: return arr
     return np.convolve(arr, np.ones(w)/w, mode='valid')
-
 def styled_ax(ax, title, xlabel="", ylabel="", polar=False):
     ax.set_facecolor(PANEL_BG)
     if not polar:
         for sp in ax.spines.values(): sp.set_edgecolor(GRID_COL)
         ax.grid(True, color=GRID_COL, linewidth=0.5, alpha=0.7)
-    ax.tick_params(colors=TEXT_COL, labelsize=8.5)
+        ax.tick_params(colors=TEXT_COL, labelsize=8.5)
     ax.set_title(title, color=TEXT_COL, fontsize=9.5, fontweight="bold", pad=6)
     if xlabel: ax.set_xlabel(xlabel, color=TEXT_COL, fontsize=8.5)
     if ylabel: ax.set_ylabel(ylabel, color=TEXT_COL, fontsize=8.5)
@@ -353,10 +390,9 @@ def generate_figure_1_base(results, traces, summary, output_path):
     ax2a = styled_ax(fig.add_subplot(gs[2, 0]), "Active Nodes N(t)", "Step", "N")
     ax2b = styled_ax(fig.add_subplot(gs[2, 1]), f"Reward R(t) (smoothed {WIN} steps)", "Step", "R")
     ax2c = styled_ax(fig.add_subplot(gs[2, 2]), "Accumulated Valence E(t)", "Step", "sum E_i")
-    for s in trace_seeds_plot:
-        if s in traces:
+    for s in trace_seeds_plot:        if s in traces:
             col = ACCENT if traces[s]['converged_target'] else RED; t = traces[s]
-            nd = np.array(t['node_traj']); rw = np.array(t['reward_traj']); va = np.array(t['val_traj'])
+            nd = np.array(t['node_traj']); rw = np.array(t.get('reward_traj', np.zeros(len(nd)))); va = np.array(t['val_traj'])
             ax2a.plot(steps_arr[:len(nd)], nd, color=col, lw=0.9, alpha=0.85); rw_s = smooth(rw); ax2b.plot(steps_arr[WIN-1:WIN-1+len(rw_s)], rw_s, color=col, lw=0.9, alpha=0.85); va_s = smooth(va); ax2c.plot(steps_arr[WIN-1:WIN-1+len(va_s)], va_s, color=col, lw=0.9, alpha=0.85)
     N_base_bound = 1.0/THETA_D; N_rho_bound = summary['theorem1']['N_rho_bound']
     ax2a.axhline(N_base_bound, color=YELLOW, ls=":", lw=1.3, label=f"N* <= 1/theta_d = {N_base_bound:.0f}"); ax2a.axhline(N_rho_bound, color=ORANGE, ls="--", lw=1.3, label=f"N* <= rho/theta_d = {N_rho_bound:.1f}"); ax2a.axhline(np.mean(nc_all), color=GREEN, ls="-", lw=1.0, alpha=0.6, label=f"N sim = {np.mean(nc_all):.1f}"); ax2a.legend(fontsize=7.5, framealpha=0.3, labelcolor=TEXT_COL)
@@ -403,8 +439,7 @@ def generate_figure_1_base(results, traces, summary, output_path):
 
 def generate_figure_2_scalability(scale_results, output_path):
     fig = plt.figure(figsize=(22, 18), facecolor=DARK_BG)
-    fig.suptitle("DSCN-G v7.2 — Scalability Study N0 in {4, 50, 200}", fontsize=18, fontweight="bold", color=TEXT_COL, y=0.992)
-    gs = gridspec.GridSpec(3, 3, figure=fig, hspace=0.50, wspace=0.33, left=0.07, right=0.97, top=0.968, bottom=0.06)
+    fig.suptitle("DSCN-G v7.2 — Scalability Study N0 in {4, 50, 200}", fontsize=18, fontweight="bold", color=TEXT_COL, y=0.992)    gs = gridspec.GridSpec(3, 3, figure=fig, hspace=0.50, wspace=0.33, left=0.07, right=0.97, top=0.968, bottom=0.06)
     SCALE_COLORS = {4: ACCENT, 50: GREEN, 200: PURPLE}; SCALE_MARKS = {4: 'o', 50: 's', 200: 'D'}; N_INITS = sorted(scale_results.keys())
     ax_pe = styled_ax(fig.add_subplot(gs[0, 0]), "Phase Error", "N0", "|phi - theta*|")
     ax_om = styled_ax(fig.add_subplot(gs[0, 1]), "||omega|| Final", "N0", "||omega||")
@@ -450,12 +485,11 @@ def generate_figure_4_field(field_results, field_summary, output_path):
     ax = axes[0, 0]; ax.set_facecolor(PANEL_BG)
     if field_results:
         r = field_results[0]; ax.plot(r['coherence_traj'], color=ACCENT, lw=1.0); ax.axhline(field_summary['coherence_mean'], color=GREEN, ls="--", lw=1.5, label=f"Mean = {field_summary['coherence_mean']:.3f}")
-    ax.set_xlabel("Step", color=TEXT_COL); ax.set_ylabel("Global Coherence", color=TEXT_COL); ax.set_title("Coherence Evolution", color=TEXT_COL, fontweight="bold"); ax.tick_params(colors=TEXT_COL); ax.legend(fontsize=8, framealpha=0.3, labelcolor=TEXT_COL); ax.grid(True, color=GRID_COL, alpha=0.3)
+        ax.set_xlabel("Step", color=TEXT_COL); ax.set_ylabel("Global Coherence", color=TEXT_COL); ax.set_title("Coherence Evolution", color=TEXT_COL, fontweight="bold"); ax.tick_params(colors=TEXT_COL); ax.legend(fontsize=8, framealpha=0.3, labelcolor=TEXT_COL); ax.grid(True, color=GRID_COL, alpha=0.3)
     ax = axes[0, 1]; ax.set_facecolor(PANEL_BG); coh_all = [r['coherence_final'] for r in field_results]; ax.hist(coh_all, bins=20, color=PURPLE, alpha=0.7, edgecolor='white'); ax.axvline(field_summary['coherence_mean'], color=YELLOW, ls="--", lw=2, label=f"Mean = {field_summary['coherence_mean']:.3f}"); ax.set_xlabel("Final Coherence", color=TEXT_COL); ax.set_ylabel("Frequency", color=TEXT_COL); ax.set_title("Final Coherence Distribution", color=TEXT_COL, fontweight="bold"); ax.tick_params(colors=TEXT_COL); ax.legend(fontsize=8, framealpha=0.3, labelcolor=TEXT_COL); ax.grid(True, color=GRID_COL, alpha=0.3)
     ax = axes[1, 0]; ax.set_facecolor(PANEL_BG)
-    if field_results: r = field_results[0]; ax.plot(r['rho_traj'], color=TEAL, lw=1.0)
-    ax.set_xlabel("Step", color=TEXT_COL); ax.set_ylabel("Mean Density", color=TEXT_COL); ax.set_title("Density Evolution", color=TEXT_COL, fontweight="bold"); ax.tick_params(colors=TEXT_COL); ax.grid(True, color=GRID_COL, alpha=0.3)
-    ax = axes[1, 1]; ax.set_facecolor(PANEL_BG); ax.text(0.5, 0.5, f"Phase Transition\n\nMean coherence: {field_summary['coherence_mean']:.3f}\nDetected: {'YES' if field_summary['phase_transition_detected'] else 'NO'}\n\nLambda_c theoretical ~ 10.1\n(for circulant graphs)", ha='center', va='center', transform=ax.transAxes, color=TEXT_COL, fontsize=12, fontweight='bold', bbox=dict(boxstyle='round', facecolor=PANEL_BG, edgecolor=ACCENT, alpha=0.8)); ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_xticks([]); ax.set_yticks([])
+    if field_results: r = field_results[0]; ax.plot(r['rho_traj'], color=TEAL, lw=1.0)    ax.set_xlabel("Step", color=TEXT_COL); ax.set_ylabel("Mean Density", color=TEXT_COL); ax.set_title("Density Evolution", color=TEXT_COL, fontweight="bold"); ax.tick_params(colors=TEXT_COL); ax.grid(True, color=GRID_COL, alpha=0.3)
+    ax = axes[1, 1]; ax.set_facecolor(PANEL_BG); ax.text(0.5, 0.5, f"Phase Transition\n\nMean coherence: {field_summary['coherence_mean']:.3f}\nDetected: {'YES' if field_summary['phase_transition_detected'] else 'NO'}\n\nLambda_c theoretical ~ 10.1 \n(for circulant graphs)", ha='center', va='center', transform=ax.transAxes, color=TEXT_COL, fontsize=12, fontweight='bold', bbox=dict(boxstyle='round', facecolor=PANEL_BG, edgecolor=ACCENT, alpha=0.8)); ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_xticks([]); ax.set_yticks([])
     save_fig(fig, output_path)
 
 # ==================================================================
@@ -469,7 +503,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     mode, results_dir, figures_dir = args.mode, args.results_dir, args.figures_dir
     os.makedirs(results_dir, exist_ok=True); os.makedirs(figures_dir, exist_ok=True)
-
     if mode in ("base", "all"):
         print("=" * 65); print("PHASE 1: Base Simulation — 100 seeds x 2000 steps"); print("=" * 65)
         results, traces, summary = run_batch_simulation(seeds=list(range(100)), steps=STEPS, n_init=4, full_trace_seeds=[0, 10, 50, 90])
@@ -479,7 +512,6 @@ if __name__ == "__main__":
             json.dump({str(k): {kk: vv for kk, vv in v.items() if kk in ('phi_traj', 'omega_traj', 'vit_traj', 'node_traj', 'reward_traj', 'val_traj', 'seed', 'converged_target')} for k, v in traces.items()}, f, indent=2)
         print(f"\nResults saved to {results_dir}/base_simulation_100seeds.json")
         print("\nGenerating Figure 1..."); generate_figure_1_base(results, traces, summary, f"{figures_dir}/fig1_base_simulation.png")
-
     if mode in ("scalability", "all"):
         print("\n" + "=" * 65); print("PHASE 1B: Scalability Study"); print("=" * 65)
         scale_results = {}
@@ -491,7 +523,6 @@ if __name__ == "__main__":
             json.dump({str(k): [{kk: vv for kk, vv in r.items() if k not in ('phi_traj', 'omega_traj', 'vit_traj', 'node_traj', 'reward_traj', 'val_traj', 'chain_concentration_traj', 'hijack_details')} for r in v] for k, v in scale_results.items()}, f, indent=2)
         print(f"\nScalability saved to {results_dir}/scalability_results.json")
         print("\nGenerating Figure 2..."); generate_figure_2_scalability(scale_results, f"{figures_dir}/fig2_scalability.png")
-
     if mode in ("sweep", "all"):
         print("\n" + "=" * 65); print("PHASE 1C: Parameter Sweep (Prediction C3)"); print("=" * 65)
         sweep_results = run_parameter_sweep(kappa_values=[0.1, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0], theta_emerg_values=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], seeds_per_config=20, steps=STEPS)
@@ -499,7 +530,6 @@ if __name__ == "__main__":
             json.dump(sweep_results, f, indent=2)
         print(f"\nSweep saved to {results_dir}/parameter_sweep.json")
         print("\nGenerating Figure 3..."); generate_figure_3_hijacking(sweep_results, f"{figures_dir}/fig3_hijacking_sweep.png")
-
     if mode in ("field", "all"):
         print("\n" + "=" * 65); print("PHASE 1D: Autopoietic Field"); print("=" * 65)
         field_results, field_summary = simulate_autopoietic_field(n_nodes=100, steps=1000, seeds=10)
@@ -507,14 +537,11 @@ if __name__ == "__main__":
             json.dump({"summary": field_summary, "results": [make_serializable({k: v for k, v in r.items() if k not in ('rho_traj', 'coherence_traj')}) for r in field_results]}, f, indent=2)
         print(f"\nField saved to {results_dir}/field_results.json")
         print(f"Mean coherence: {field_summary['coherence_mean']:.3f}")
-        print(f"Transition detected: {field_summary['phase_transition_detected']}")
-        print("\nGenerating Figure 4..."); generate_figure_4_field(field_results, field_summary, f"{figures_dir}/fig4_autopoietic_field.png")
-
+        print(f"Transition detected: {field_summary['phase_transition_detected']}")        print("\nGenerating Figure 4..."); generate_figure_4_field(field_results, field_summary, f"{figures_dir}/fig4_autopoietic_field.png")
     if mode in ("quantum", "all"):
         print("\n" + "=" * 65); print("PHASE 1E: Q-DSCN-G Approximate"); print("=" * 65)
         q_results = simulate_q_dscn_g_approx(n_nodes=50, steps=500, seeds=10)
         with open(f"{results_dir}/quantum_results.json", "w") as f:
             json.dump({"entropy_final_mean": float(np.mean([r['entropy_final'] for r in q_results])), "results": [make_serializable({k: v for k, v in r.items() if k != 'entropy_traj'}) for r in q_results]}, f, indent=2)
         print(f"\nQuantum saved to {results_dir}/quantum_results.json")
-
     print("\n" + "=" * 65); print("ALL SIMULATIONS COMPLETED"); print("=" * 65)
