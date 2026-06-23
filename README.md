@@ -113,4 +113,5 @@ See the companion repository **[DSCN-G-Bio](https://github.com/Rylow999/dscn-g-b
 
 ---
 
-**Per Aspera, Ad Astra.** - Framework v7.2
+*Per Aspera, Ad Astra.*
+*Framework: DSCN-G v7.2*
