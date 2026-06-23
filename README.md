@@ -108,4 +108,4 @@ All simulations use deterministic RNG (`numpy.random.default_rng(seed)`). The co
 
 ## Related Work
 
-See the companion repository **[dscn-g-bio](https://github.com/Rylow999/dscn-g-bio)** for the biological testability framework, EEG predictions, and experimental protocols derived from DSCN-G.
+See the companion repository **[DSCN-G-Bio](https://github.com/Rylow999/dscn-g-bio)** for the biological testability framework, EEG predictions, and experimental protocols derived from DSCN-G.
